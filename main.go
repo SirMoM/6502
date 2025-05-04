@@ -1,8 +1,6 @@
 package main
 
-import (
-	"fmt"
-)
+import "fmt"
 
 func main() {
 	println("6502")
@@ -11,11 +9,7 @@ func main() {
 	mem.Init()
 	cpu.Reset(&mem)
 
+	cpu.Execute(3, &mem)
 	fmt.Println(cpu)
-	fmt.Println("\n###############################")
-	fmt.Println(mem)
-	fmt.Println(cpu)
-	cpu.Execute(5, &mem)
-	fmt.Println(cpu)
-
+	cpu.Execute(1, &mem)
 }

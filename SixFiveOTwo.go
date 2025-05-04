@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"os"
 	"strings"
 )
 
@@ -56,8 +57,24 @@ func (cpu SixFiveOTwo) String() string {
 	fmt.Fprintf(&sb, "%v\n", cpu.Status)
 	return sb.String()
 }
+func (cpu *SixFiveOTwo) short() string {
+	sb := strings.Builder{}
+	fmt.Fprintln(&sb, "────────────────")
+	fmt.Fprintf(&sb, " C   : %04d\n", cpu.Cycle)
+	fmt.Fprintf(&sb, "PC   : %#04X\n", cpu.ProgramCounter)
+	fmt.Fprintf(&sb, "SP   : %#02X\n", cpu.StackPointer)
+	fmt.Fprintf(&sb, "ACC  : %#02X\n", cpu.Accumulator)
+	fmt.Fprintln(&sb, "────────────────")
+	fmt.Fprintf(&sb, "REG X: %#02X\n", cpu.RegisterX)
+	fmt.Fprintf(&sb, "REG Y: %#02X\n", cpu.RegisterY)
+	fmt.Fprintln(&sb, "────────────────")
+	fmt.Fprintf(&sb, "Satus: %#02X\n", cpu.Status.Status)
+	fmt.Fprintln(&sb, "────────────────")
+
+	return sb.String()
+}
 func (cpu *SixFiveOTwo) Reset(mem *Memory) {
-	cpu.ProgramCounter = 0xFFFC
+	cpu.ProgramCounter = 0xFFF1
 	cpu.StackPointer = 0xFF
 	cpu.Accumulator = 0
 	cpu.RegisterX = 0
@@ -69,14 +86,23 @@ func (cpu *SixFiveOTwo) Reset(mem *Memory) {
 }
 
 func (cpu *SixFiveOTwo) FetchInstruction(mem *Memory) Instruction {
-	return Instruction(cpu.FetchByte(mem))
+	return Instruction(cpu.FetchBytePC(mem))
 }
 
-func (cpu *SixFiveOTwo) FetchByte(mem *Memory) uint8 {
+func (cpu *SixFiveOTwo) FetchByte(mem *Memory, adress uint16) uint8 {
+	// fmt.Printf("Loading from: %#04X -> ", cpu.ProgramCounter)
+	data := mem.Data[adress]
+	cpu.Cycle++
+	// fmt.Printf("%#02X\n", data)
+	return data
+
+}
+func (cpu *SixFiveOTwo) FetchBytePC(mem *Memory) uint8 {
+	// fmt.Printf("Loading from: %#04X -> ", cpu.ProgramCounter)
 	data := mem.Data[cpu.ProgramCounter]
 	cpu.ProgramCounter++
 	cpu.Cycle++
-	fmt.Printf("Fetchted from MEM: %#08b\n", data)
+	// fmt.Printf("%#02X\n", data)
 	return data
 
 }
@@ -86,6 +112,10 @@ type Instruction uint8
 const (
 	// Load Accumulation
 	LDA_I Instruction = 0xA9
+	LDX_I Instruction = 0xA2
+
+	// ADC - Add with Carry
+	ADC_ZX Instruction = 0x75 // Zero Page,X
 )
 const (
 	bit7 uint8 = 0x80
@@ -98,23 +128,79 @@ const (
 	bit0 uint8 = 0x1
 )
 const (
-	CarryFlagPosition uint8 = 0
+	CarryFlagPosition uint8 = iota
+	ZeroFlagPosition
+	InterruptDisableFlagPosition
+	DecimalModeFlagPosition
+	BreakCommandFlagPosition
+	UNUSEDPosition
+	OverflowFlagPosition
+	NegativeFlagPosition
 )
+
+// evaluateAndSetStatusFlags updates the Zero (Z) and Negative (N) flags
+// in the CPU's status register based on the provided data byte.
+// The Zero flag is set if data is 0.
+// The Negative flag is set if bit 7 (the most significant bit) of data is set.
+// This is typically called after operations that affect these flags (e.g., loads,
+// arithmetic, logic).
+//
+// Parameters:
+//
+//	data: The uint8 value to evaluate for setting the flags.
+//
+// Side Effects:
+//
+//	Modifies cpu.Status (specifically the Z and N flags).
+func (cpu *SixFiveOTwo) evaluateAndSetStatusFlags(data uint8) {
+	zero := data == 0
+	// Assumes NegativeFlagPosition is 7 for an 8-bit value.
+	neg := (data >> NegativeFlagPosition) > 0
+	cpu.Status.SetZeroFlag(zero)
+	cpu.Status.SetNegativeFlag(neg)
+}
+
+// loadIntoRegister fetches a byte from memory using FetchByte (which advances the
+// Program Counter) and stores it into the specified register.
+// It then updates the Zero (Z) and Negative (N) status flags based on the value
+// that was loaded, by calling evaluateAndSetStatusFlags.
+// Parameters:
+//
+//	reg: A pointer to the target CPU register (e.g., &cpu.Accumulator, &cpu.RegisterX, &cpu.RegisterY).
+//	mem: A pointer to the Memory interface/struct used for fetching the byte.
+//
+// Side Effects:
+//   - Modifies the value of the register pointed to by `reg`.
+//   - Increments the Program Counter (PC) via the call to FetchByte.
+//   - Modifies cpu.Status (specifically the Z and N flags) via the call
+//     to evaluateAndSetStatusFlags.
+func (cpu *SixFiveOTwo) loadIntoRegister(reg *uint8, mem *Memory) {
+	data := cpu.FetchBytePC(mem)
+	*reg = data
+	cpu.evaluateAndSetStatusFlags(data)
+}
 
 func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem *Memory) {
 	executionEnd := cpu.Cycle + cyclesToRun
 	for cyclesToRun == 0 || cpu.Cycle <= executionEnd {
-		fmt.Println(cpu)
+		fmt.Println(cpu.short())
 		instruction := cpu.FetchInstruction(mem)
-		fmt.Printf("%#02X\n", instruction)
 		switch instruction {
+		case LDX_I:
+			fmt.Println("LDX_I")
+			cpu.loadIntoRegister(&cpu.RegisterX, mem)
 		case LDA_I:
-			data := cpu.FetchByte(mem)
-			cpu.Accumulator = data
-			cpu.Status.SetZeroFlag(data == 0)
-			cpu.Status.SetNegativeFlag((data >> bit7) > 0)
+			fmt.Println("LDA_I")
+			cpu.loadIntoRegister(&cpu.Accumulator, mem)
+		case ADC_ZX:
+			// 4 cycles
+			fmt.Println("ADC_ZX")
+			lhs := cpu.FetchByte(mem, uint16(cpu.RegisterX))
+			res := lhs + cpu.Accumulator
+			println(res)
 		default:
-			panic("NOT IMPLEMENTED!")
+			// fmt.Fprintln(os.Stderr, cpu)
+			os.Exit(1)
 		}
 
 	}
@@ -157,15 +243,47 @@ type ProcessorStatus struct {
 	Status uint8
 }
 
+func (ps *ProcessorStatus) GetOverflowFlag() uint8 {
+	return ps.GetFlag(OverflowFlagPosition)
+}
+func (ps *ProcessorStatus) SetOverflowFlag(b bool) {
+	ps.SetFlag(bit6, b)
+}
+
+func (ps *ProcessorStatus) GetInterruptDisableFlag() uint8 {
+	return ps.GetFlag(InterruptDisableFlagPosition)
+}
+
+func (ps *ProcessorStatus) GetDecimalFlag() uint8 {
+	return ps.GetFlag(DecimalModeFlagPosition)
+}
+func (ps *ProcessorStatus) SetDecimalFlag(b bool) {
+	ps.SetFlag(bit3, b)
+}
+
+func (ps *ProcessorStatus) SetInterruptDisableFlag(b bool) {
+	ps.SetFlag(bit2, b)
+}
+
+func (ps *ProcessorStatus) SetCarryFlag(b bool) {
+	ps.SetFlag(bit0, b)
+}
+func (ps *ProcessorStatus) GetCarryFlag() uint8 {
+	return ps.GetFlag(CarryFlagPosition)
+}
+
 func (ps *ProcessorStatus) SetNegativeFlag(b bool) {
 	ps.SetFlag(bit7, b)
+}
+func (ps *ProcessorStatus) GetNegativeFlag() uint8 {
+	return ps.GetFlag(NegativeFlagPosition)
 }
 
 func (ps *ProcessorStatus) SetZeroFlag(b bool) {
 	ps.SetFlag(bit1, b)
 }
-func (ps *ProcessorStatus) GetZeroFlag() {
-	(panic("todo"))
+func (ps *ProcessorStatus) GetZeroFlag() uint8 {
+	return ps.GetFlag(ZeroFlagPosition)
 }
 
 func (ps *ProcessorStatus) Reset() {
@@ -174,18 +292,15 @@ func (ps *ProcessorStatus) Reset() {
 }
 
 func (ps *ProcessorStatus) SetFlag(flag uint8, set bool) {
-
 	if set {
 		ps.Status = ps.Status | flag
 	} else {
-		ps.Status = ps.Status ^ flag
+		ps.Status = ps.Status &^ flag
 	}
-
 }
+
 func (ps *ProcessorStatus) GetFlag(flag uint8) uint8 {
-
 	return (ps.Status >> flag & 1)
-
 }
 
 func (ps ProcessorStatus) String() string {
@@ -212,8 +327,11 @@ type Memory struct {
 
 func (mem *Memory) Init() {
 	mem.Data = make([]uint8, math.MaxUint16+1)
-	mem.Data[0xFFFC] = uint8(LDA_I)
-	mem.Data[0xFFFD] = 0xF9
+	mem.Data[0xFFF1] = uint8(LDA_I)
+	mem.Data[0xFFF2] = 0xF9
+	mem.Data[0xFFF3] = uint8(LDX_I)
+	mem.Data[0xFFF4] = 0x0F
+	mem.Data[0xFFF5] = uint8(ADC_ZX)
 
 }
 
