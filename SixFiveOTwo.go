@@ -7,6 +7,8 @@ import (
 	"strings"
 )
 
+type Word uint8
+type Address uint16
 type SixFiveOTwo struct {
 	Cycle uint
 
@@ -14,7 +16,7 @@ type SixFiveOTwo struct {
 	// The program counter is a 16 bit register which points to the next instruction to be executed. The value of program counter is modified automatically as instructions are executed.
 	//
 	// The value of the program counter can be modified by executing a jump, a relative branch or a subroutine call to another memory address or by returning from a subroutine or interrupt.
-	ProgramCounter uint16
+	ProgramCounter Address
 
 	// StackPointer
 	// The processor supports a 256 byte stack located between $0100 and $01FF. The stack pointer is an 8 bit register and holds the low 8 bits of the next free location on the stack. The location of the stack is fixed and cannot be moved.
@@ -22,14 +24,14 @@ type SixFiveOTwo struct {
 	// Pushing bytes to the stack causes the stack pointer to be decremented. Conversely pulling bytes causes it to be incremented.
 	//
 	// The CPU does not detect if the stack is overflowed by excessive pushing or pulling operations and will most likely result in the program crashing.
-	StackPointer uint8
+	StackPointer Word
 
 	// Accumulator
 	//
 	// The 8 bit accumulator is used all arithmetic and logical operations (with the exception of increments and decrements). The contents of the accumulator can be stored and retrieved either from memory or the stack.
 	//
 	// Most complex operations will need to use the accumulator for arithmetic and efficient optimisation of its use is a key feature of time critical routines.
-	Accumulator uint8
+	Accumulator Word
 
 	// Index Register X
 	//
@@ -38,7 +40,7 @@ type SixFiveOTwo struct {
 	// The X register has one special function. It can be used to get a copy of the stack pointer or change its value.
 	//
 	// The Y register is similar to the X register in that it is available for holding counter or offsets memory access and supports the same set of memory load, save and compare operations as wells as increments and decrements.
-	RegisterX, RegisterY uint8
+	RegisterX, RegisterY Word
 
 	Status ProcessorStatus
 }
@@ -89,7 +91,7 @@ func (cpu *SixFiveOTwo) FetchInstruction(mem *Memory) Instruction {
 	return Instruction(cpu.FetchBytePC(mem))
 }
 
-func (cpu *SixFiveOTwo) FetchByte(mem *Memory, adress uint16) uint8 {
+func (cpu *SixFiveOTwo) FetchByte(mem *Memory, adress Address) Word {
 	// fmt.Printf("Loading from: %#04X -> ", cpu.ProgramCounter)
 	data := mem.Data[adress]
 	cpu.Cycle++
@@ -97,7 +99,7 @@ func (cpu *SixFiveOTwo) FetchByte(mem *Memory, adress uint16) uint8 {
 	return data
 
 }
-func (cpu *SixFiveOTwo) FetchBytePC(mem *Memory) uint8 {
+func (cpu *SixFiveOTwo) FetchBytePC(mem *Memory) Word {
 	// fmt.Printf("Loading from: %#04X -> ", cpu.ProgramCounter)
 	data := mem.Data[cpu.ProgramCounter]
 	cpu.ProgramCounter++
@@ -118,14 +120,14 @@ const (
 	ADC_ZX Instruction = 0x75 // Zero Page,X
 )
 const (
-	bit7 uint8 = 0x80
-	bit6 uint8 = 0x40
-	bit5 uint8 = 0x20
-	bit4 uint8 = 0x10
-	bit3 uint8 = 0x8
-	bit2 uint8 = 0x4
-	bit1 uint8 = 0x2
-	bit0 uint8 = 0x1
+	bit7 Word = 0x80
+	bit6 Word = 0x40
+	bit5 Word = 0x20
+	bit4 Word = 0x10
+	bit3 Word = 0x8
+	bit2 Word = 0x4
+	bit1 Word = 0x2
+	bit0 Word = 0x1
 )
 const (
 	CarryFlagPosition uint8 = iota
@@ -147,12 +149,12 @@ const (
 //
 // Parameters:
 //
-//	data: The uint8 value to evaluate for setting the flags.
+//	data: The Word value to evaluate for setting the flags.
 //
 // Side Effects:
 //
 //	Modifies cpu.Status (specifically the Z and N flags).
-func (cpu *SixFiveOTwo) evaluateAndSetStatusFlags(data uint8) {
+func (cpu *SixFiveOTwo) evaluateAndSetStatusFlags(data Word) {
 	zero := data == 0
 	// Assumes NegativeFlagPosition is 7 for an 8-bit value.
 	neg := (data >> NegativeFlagPosition) > 0
@@ -174,7 +176,7 @@ func (cpu *SixFiveOTwo) evaluateAndSetStatusFlags(data uint8) {
 //   - Increments the Program Counter (PC) via the call to FetchByte.
 //   - Modifies cpu.Status (specifically the Z and N flags) via the call
 //     to evaluateAndSetStatusFlags.
-func (cpu *SixFiveOTwo) loadIntoRegister(reg *uint8, mem *Memory) {
+func (cpu *SixFiveOTwo) loadIntoRegister(reg *Word, mem *Memory) {
 	data := cpu.FetchBytePC(mem)
 	*reg = data
 	cpu.evaluateAndSetStatusFlags(data)
@@ -195,7 +197,7 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem *Memory) {
 		case ADC_ZX:
 			// 4 cycles
 			fmt.Println("ADC_ZX")
-			lhs := cpu.FetchByte(mem, uint16(cpu.RegisterX))
+			lhs := cpu.FetchByte(mem, Address(cpu.RegisterX))
 			res := lhs + cpu.Accumulator
 			println(res)
 		default:
@@ -240,21 +242,21 @@ type ProcessorStatus struct {
 	// Negative Flag
 	//
 	// The negative flag is set if the result of the last operation had bit 7 set to a one.
-	Status uint8
+	Status Word
 }
 
-func (ps *ProcessorStatus) GetOverflowFlag() uint8 {
+func (ps *ProcessorStatus) GetOverflowFlag() Word {
 	return ps.GetFlag(OverflowFlagPosition)
 }
 func (ps *ProcessorStatus) SetOverflowFlag(b bool) {
 	ps.SetFlag(bit6, b)
 }
 
-func (ps *ProcessorStatus) GetInterruptDisableFlag() uint8 {
+func (ps *ProcessorStatus) GetInterruptDisableFlag() Word {
 	return ps.GetFlag(InterruptDisableFlagPosition)
 }
 
-func (ps *ProcessorStatus) GetDecimalFlag() uint8 {
+func (ps *ProcessorStatus) GetDecimalFlag() Word {
 	return ps.GetFlag(DecimalModeFlagPosition)
 }
 func (ps *ProcessorStatus) SetDecimalFlag(b bool) {
@@ -268,21 +270,21 @@ func (ps *ProcessorStatus) SetInterruptDisableFlag(b bool) {
 func (ps *ProcessorStatus) SetCarryFlag(b bool) {
 	ps.SetFlag(bit0, b)
 }
-func (ps *ProcessorStatus) GetCarryFlag() uint8 {
+func (ps *ProcessorStatus) GetCarryFlag() Word {
 	return ps.GetFlag(CarryFlagPosition)
 }
 
 func (ps *ProcessorStatus) SetNegativeFlag(b bool) {
 	ps.SetFlag(bit7, b)
 }
-func (ps *ProcessorStatus) GetNegativeFlag() uint8 {
+func (ps *ProcessorStatus) GetNegativeFlag() Word {
 	return ps.GetFlag(NegativeFlagPosition)
 }
 
 func (ps *ProcessorStatus) SetZeroFlag(b bool) {
 	ps.SetFlag(bit1, b)
 }
-func (ps *ProcessorStatus) GetZeroFlag() uint8 {
+func (ps *ProcessorStatus) GetZeroFlag() Word {
 	return ps.GetFlag(ZeroFlagPosition)
 }
 
@@ -291,7 +293,7 @@ func (ps *ProcessorStatus) Reset() {
 
 }
 
-func (ps *ProcessorStatus) SetFlag(flag uint8, set bool) {
+func (ps *ProcessorStatus) SetFlag(flag Word, set bool) {
 	if set {
 		ps.Status = ps.Status | flag
 	} else {
@@ -299,8 +301,9 @@ func (ps *ProcessorStatus) SetFlag(flag uint8, set bool) {
 	}
 }
 
-func (ps *ProcessorStatus) GetFlag(flag uint8) uint8 {
-	return (ps.Status >> flag & 1)
+// GetFlag retrieves the value of the specified flag bit in the processor status register.
+func (ps *ProcessorStatus) GetFlag(flag uint8) Word {
+	return ps.Status >> Word(flag) & 1
 }
 
 func (ps ProcessorStatus) String() string {
@@ -322,16 +325,16 @@ func (ps ProcessorStatus) String() string {
 }
 
 type Memory struct {
-	Data []uint8
+	Data []Word
 }
 
 func (mem *Memory) Init() {
-	mem.Data = make([]uint8, math.MaxUint16+1)
-	mem.Data[0xFFF1] = uint8(LDA_I)
+	mem.Data = make([]Word, math.MaxUint16+1)
+	mem.Data[0xFFF1] = Word(LDA_I)
 	mem.Data[0xFFF2] = 0xF9
-	mem.Data[0xFFF3] = uint8(LDX_I)
+	mem.Data[0xFFF3] = Word(LDX_I)
 	mem.Data[0xFFF4] = 0x0F
-	mem.Data[0xFFF5] = uint8(ADC_ZX)
+	mem.Data[0xFFF5] = Word(ADC_ZX)
 
 }
 
