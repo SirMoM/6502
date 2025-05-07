@@ -8,6 +8,7 @@ func main() {
 	mem := Memory{}
 	mem.Init()
 	cpu.Reset(&mem)
+	fmt.Println(cpu)
 
 	cpu.Execute(3, &mem)
 	fmt.Println(cpu)

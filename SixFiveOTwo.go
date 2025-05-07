@@ -76,7 +76,10 @@ func (cpu *SixFiveOTwo) short() string {
 	return sb.String()
 }
 func (cpu *SixFiveOTwo) Reset(mem *Memory) {
-	cpu.ProgramCounter = 0xFFF1
+	mem.Init()
+
+	cpu.ProgramCounter = 0xFFFC
+	cpu.ProgramCounter = cpu.FetchAddress(mem)
 	cpu.StackPointer = 0xFF
 	cpu.Accumulator = 0
 	cpu.RegisterX = 0
@@ -84,14 +87,28 @@ func (cpu *SixFiveOTwo) Reset(mem *Memory) {
 	cpu.Cycle = 0
 	cpu.Status.Reset()
 
-	mem.Init()
 }
 
 func (cpu *SixFiveOTwo) FetchInstruction(mem *Memory) Instruction {
-	return Instruction(cpu.FetchBytePC(mem))
+	return Instruction(cpu.FetchWordFromProgrammCounter(mem))
 }
 
-func (cpu *SixFiveOTwo) FetchByte(mem *Memory, adress Address) Word {
+// FetchAddress fetches a Address from Memmory and incremments the ProgrmmCounter
+/*
+	Memory Address | Contents       | Description
+	---------------+----------------+------------------------------------
+	$0200       |     $34        | LSB Least Significant Byte (Low Byte) of the address
+	---------------+----------------+------------------------------------
+	$0201       |     $12        | MSB Most Significant Byte (High Byte) of the address
+	---------------+----------------+------------------------------------
+*/
+func (cpu *SixFiveOTwo) FetchAddress(mem *Memory) Address {
+	lsb := cpu.FetchWordFromProgrammCounter(mem)
+	msb := cpu.FetchWordFromProgrammCounter(mem)
+	return Address(uint16(msb)<<8 | uint16(lsb))
+}
+
+func (cpu *SixFiveOTwo) FetchWord(mem *Memory, adress Address) Word {
 	// fmt.Printf("Loading from: %#04X -> ", cpu.ProgramCounter)
 	data := mem.Data[adress]
 	cpu.Cycle++
@@ -99,7 +116,7 @@ func (cpu *SixFiveOTwo) FetchByte(mem *Memory, adress Address) Word {
 	return data
 
 }
-func (cpu *SixFiveOTwo) FetchBytePC(mem *Memory) Word {
+func (cpu *SixFiveOTwo) FetchWordFromProgrammCounter(mem *Memory) Word {
 	// fmt.Printf("Loading from: %#04X -> ", cpu.ProgramCounter)
 	data := mem.Data[cpu.ProgramCounter]
 	cpu.ProgramCounter++
@@ -118,6 +135,10 @@ const (
 
 	// ADC - Add with Carry
 	ADC_ZX Instruction = 0x75 // Zero Page,X
+
+	// JMP - Jump
+	JMP_ABS Instruction = 0x4C // Absolute
+	JMP_IND Instruction = 0x6C // Indirect
 )
 const (
 	bit7 Word = 0x80
@@ -162,7 +183,7 @@ func (cpu *SixFiveOTwo) evaluateAndSetStatusFlags(data Word) {
 	cpu.Status.SetNegativeFlag(neg)
 }
 
-// loadIntoRegister fetches a byte from memory using FetchByte (which advances the
+// loadIntoRegister fetches a byte from memory using FetchWord (which advances the
 // Program Counter) and stores it into the specified register.
 // It then updates the Zero (Z) and Negative (N) status flags based on the value
 // that was loaded, by calling evaluateAndSetStatusFlags.
@@ -173,11 +194,11 @@ func (cpu *SixFiveOTwo) evaluateAndSetStatusFlags(data Word) {
 //
 // Side Effects:
 //   - Modifies the value of the register pointed to by `reg`.
-//   - Increments the Program Counter (PC) via the call to FetchByte.
+//   - Increments the Program Counter (PC) via the call to FetchWord.
 //   - Modifies cpu.Status (specifically the Z and N flags) via the call
 //     to evaluateAndSetStatusFlags.
 func (cpu *SixFiveOTwo) loadIntoRegister(reg *Word, mem *Memory) {
-	data := cpu.FetchBytePC(mem)
+	data := cpu.FetchWordFromProgrammCounter(mem)
 	*reg = data
 	cpu.evaluateAndSetStatusFlags(data)
 }
@@ -197,11 +218,17 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem *Memory) {
 		case ADC_ZX:
 			// 4 cycles
 			fmt.Println("ADC_ZX")
-			lhs := cpu.FetchByte(mem, Address(cpu.RegisterX))
+			lhs := cpu.FetchWord(mem, Address(cpu.RegisterX))
 			res := lhs + cpu.Accumulator
 			println(res)
+		case JMP_ABS:
+			fmt.Printf("cc: %d", cpu.Cycle)
+			cpu.ProgramCounter = cpu.FetchAddress(mem)
+			cpu.Cycle++
+
 		default:
-			// fmt.Fprintln(os.Stderr, cpu)
+			fmt.Printf("INSTRUCTION: %#04X\n", instruction)
+			fmt.Fprintln(os.Stderr, cpu)
 			os.Exit(1)
 		}
 
@@ -330,11 +357,13 @@ type Memory struct {
 
 func (mem *Memory) Init() {
 	mem.Data = make([]Word, math.MaxUint16+1)
-	mem.Data[0xFFF1] = Word(LDA_I)
-	mem.Data[0xFFF2] = 0xF9
-	mem.Data[0xFFF3] = Word(LDX_I)
-	mem.Data[0xFFF4] = 0x0F
-	mem.Data[0xFFF5] = Word(ADC_ZX)
+	mem.Data[0xFFFC] = 0x00
+	mem.Data[0xFFFD] = 0x02
+
+	mem.Data[0x0200] = 0xF9
+	mem.Data[0x0201] = Word(LDX_I)
+	mem.Data[0x0202] = 0x0F
+	mem.Data[0x0203] = Word(ADC_ZX)
 
 }
 
