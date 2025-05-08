@@ -1,4 +1,4 @@
-package main
+package computer
 
 import (
 	"fmt"
@@ -195,12 +195,18 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem *Memory, verbose bool) {
 			fmt.Printf(" %s", cpu.Accumulator)
 		case ADC_ZX:
 			// 4 cycles
+			// todo: finish
 			lhs := cpu.FetchWord(mem, Address(cpu.RegisterX))
 			res := lhs + cpu.Accumulator
 			println(res)
 			fmt.Printf(" %s + %s = %s", cpu.Accumulator, cpu.RegisterX, res)
 		case JMP_ABS:
 			fmt.Printf("cc: %d", cpu.Cycle)
+			cpu.ProgramCounter = cpu.FetchAddress(mem)
+			cpu.Cycle++
+		case JMP_IND:
+			fmt.Printf("cc: %d", cpu.Cycle)
+			cpu.ProgramCounter = cpu.FetchAddress(mem)
 			cpu.ProgramCounter = cpu.FetchAddress(mem)
 			cpu.Cycle++
 
@@ -211,5 +217,11 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem *Memory, verbose bool) {
 		}
 
 		fmt.Println()
+	}
+}
+func (cpu SixFiveOTwo) AssertCycle(cycle uint) {
+	if cpu.Cycle != cycle {
+		fmt.Fprintf(os.Stderr, "CPU is in the wrong cycle %d expected %d", cpu.Cycle, cycle)
+		os.Exit(-1)
 	}
 }

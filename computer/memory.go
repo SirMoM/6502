@@ -1,4 +1,4 @@
-package main
+package computer
 
 import (
 	"fmt"
@@ -14,13 +14,7 @@ type Memory struct {
 // Init initializes the memory with default values
 func (mem *Memory) Init() {
 	mem.Data = make([]Word, math.MaxUint16+1)
-	mem.Data[0xFFFC] = 0x00
-	mem.Data[0xFFFD] = 0x02
 
-	mem.Data[0x0200] = Word(LDX_I)
-	mem.Data[0x0201] = 0xF9
-	mem.Data[0x0202] = Word(ADC_ZX)
-	mem.Data[0x0203] = 0x0F
 }
 
 // String returns a string representation of the memory

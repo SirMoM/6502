@@ -1,10 +1,11 @@
 //go:generate stringer -type=Instruction
 
-package main
+package computer
 
 // Instruction represents a 6502 CPU instruction
 type Instruction uint8
 
+//goland:noinspection ALL
 const (
 	// Load Accumulation
 	LDA_I Instruction = 0xA9

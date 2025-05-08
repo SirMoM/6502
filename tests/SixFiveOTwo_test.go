@@ -2,9 +2,8 @@ package tests_test
 
 import (
 	"fmt"
+	m "noah-ruben.com/6502/computer"
 	"testing"
-
-	m "noah-ruben.com/6502"
 )
 
 var gt *testing.T
