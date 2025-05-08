@@ -1,0 +1,76 @@
+name: Go Build and Test
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v4
+        with:
+          go-version: '1.23.4'
+          check-latest: true
+
+      - name: Cache Go modules
+        uses: actions/cache@v3
+        with:
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-
+
+      - name: Verify dependencies
+        run: go mod verify
+
+      - name: Format check
+        run: |
+          if [ "$(gofmt -l . | wc -l)" -gt 0 ]; then
+            echo "The following files are not formatted correctly:"
+            gofmt -l .
+            exit 1
+          fi
+
+      - name: Build
+        id: build
+        run: |
+          BUILD_OUTPUT=$(go build -v ./... 2>&1)
+          echo "build_output<<EOF" >> $GITHUB_ENV
+          echo "$BUILD_OUTPUT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+
+      - name: Test
+        id: test
+        run: |
+          TEST_OUTPUT=$(go test -v ./... 2>&1)
+          echo "test_output<<EOF" >> $GITHUB_ENV
+          echo "$TEST_OUTPUT" >> $GITHUB_ENV
+          echo "EOF" >> $GITHUB_ENV
+          echo "test_count=$(echo "$TEST_OUTPUT" | grep -c "^=== RUN")" >> $GITHUB_ENV
+          echo "pass_count=$(echo "$TEST_OUTPUT" | grep -c "^--- PASS")" >> $GITHUB_ENV
+          echo "fail_count=$(echo "$TEST_OUTPUT" | grep -c "^--- FAIL")" >> $GITHUB_ENV
+
+      - name: Build Summary
+        run: |
+          echo "## Build and Test Summary" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Go version: $(go version)" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Code formatting checked" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Build Results" >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.build_output }}" >> $GITHUB_STEP_SUMMARY
+          
+          echo "### Test Results" >> $GITHUB_STEP_SUMMARY
+          echo "🧪 Tests run: ${{ env.test_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "✅ Tests passed: ${{ env.pass_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "❌ Tests failed: ${{ env.fail_count }}" >> $GITHUB_STEP_SUMMARY
+          echo "```" >> $GITHUB_STEP_SUMMARY
+          echo "${{ env.test_output }}" >> $GITHUB_STEP_SUMMARY
+          echo "```" >> $GITHUB_STEP_SUMMARY
