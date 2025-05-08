@@ -1,16 +1,16 @@
 package tests_test
 
 import (
-	"fmt"
-	m "noah-ruben.com/6502/computer"
+	c "noah-ruben.com/6502/computer"
+	"noah-ruben.com/6502/programs"
 	"testing"
 )
 
 var gt *testing.T
-var ps *m.ProcessorStatus
+var ps *c.ProcessorStatus
 
-func assertEquals(expected uint8, actual uint8, message string, args ...any) {
-	if expected != actual {
+func assertEquals(expected uint8, actual c.Word, message string, args ...any) {
+	if expected != uint8(actual) {
 		gt.Fatalf(message, append(args, actual)...)
 	}
 }
@@ -111,7 +111,7 @@ func OverflowFlag(t *testing.T) {
 
 func TestStatusRegister(t *testing.T) {
 	gt = t
-	tmp := m.ProcessorStatus{}
+	tmp := c.ProcessorStatus{}
 	ps = &tmp
 	ps.Reset()
 	gt.Log(ps)
@@ -127,21 +127,19 @@ func TestStatusRegister(t *testing.T) {
 
 }
 
-func TestAsd(t *testing.T) {
+func TestMiniProgramm(t *testing.T) {
 	gt = t
-	tmp := m.ProcessorStatus{}
-	ps = &tmp
-	ps.Reset()
-	data := 0b11111001
-	zero := data == 0
-	fmt.Printf("z %t\n", zero)
-	ps.SetZeroFlag(zero)
-	fmt.Println(ps)
+	cpu := c.SixFiveOTwo{}
+	mem := c.Memory{}
+	mem.Init()
+	_ = programs.MiniProg.CopyToMemory(cpu.ProgramCounter, &mem)
+	cpu.Reset(&mem)
 
-	// t.FailNow()
-	// neg := (data >> 7) > 0
-	// fmt.Printf("n %t\n", neg)
-	// ps.SetNegativeFlag(neg)
-	// fmt.Printf("%#08b\n", data)
-	// fmt.Println(ps)
+	cpu.Execute(1, &mem, true)
+	cpu.AssertCycle(2)
+	cpu.Execute(1, &mem, true)
+	cpu.AssertCycle(4)
+	cpu.Execute(1, &mem, true)
+	cpu.AssertCycle(8)
+	t.Log(cpu)
 }
