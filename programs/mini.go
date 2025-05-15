@@ -18,8 +18,9 @@ type MiniProgram struct {
 }
 
 func (m MiniProgram) CopyToMemory(addr computer.Address, mem *computer.Memory) error {
-	mem.Data[0xFFFC] = 0x00
-	mem.Data[0xFFFD] = 0x02
+	mem.Data[0xFFFD] = 0x00
+	mem.Data[0xFFFC] = 0x02
+
 	for idx, word := range m.data {
 		addrWithOffset := addr + computer.Address(idx)
 		mem.Data[addrWithOffset] = word

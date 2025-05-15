@@ -92,15 +92,19 @@ func (cpu *SixFiveOTwo) Short() string {
 // Reset initializes the CPU to its initial state
 func (cpu *SixFiveOTwo) Reset(mem *Memory) {
 	mem.Init()
-
 	cpu.ProgramCounter = 0xFFFC
-	cpu.ProgramCounter = cpu.FetchAddress(mem)
 	cpu.StackPointer = 0xFF
 	cpu.Accumulator = 0
 	cpu.RegisterX = 0
 	cpu.RegisterY = 0
-	cpu.Cycle = 0
 	cpu.Status.Reset()
+	cpu.Cycle = 0
+
+}
+
+func (cpu *SixFiveOTwo) addCycle() {
+	cpu.Cycle = cpu.Cycle + 1
+	LogE("\n[%d]\n", cpu.Cycle)
 }
 
 // FetchInstruction fetches the next instruction from memory
@@ -126,7 +130,7 @@ func (cpu *SixFiveOTwo) FetchAddress(mem *Memory) Address {
 // FetchWord fetches a Word from Memory at the specified address
 func (cpu *SixFiveOTwo) FetchWord(mem *Memory, adress Address) Word {
 	data := mem.Data[adress]
-	cpu.Cycle++
+	cpu.addCycle()
 	return data
 }
 
@@ -134,7 +138,7 @@ func (cpu *SixFiveOTwo) FetchWord(mem *Memory, adress Address) Word {
 func (cpu *SixFiveOTwo) FetchWordFromProgramCounter(mem *Memory) Word {
 	data := mem.Data[cpu.ProgramCounter]
 	cpu.ProgramCounter++
-	cpu.Cycle++
+	cpu.addCycle()
 	return data
 }
 
@@ -185,14 +189,14 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem *Memory, verbose bool) {
 	executionEnd := cpu.Cycle + cyclesToRun
 	for cyclesToRun == 0 || cpu.Cycle <= executionEnd {
 		instruction := cpu.FetchInstruction(mem)
-		fmt.Printf("%s", instruction)
+		logE("%s", instruction.String())
 		switch instruction {
 		case LDX_I:
 			cpu.loadIntoRegister(&cpu.RegisterX, mem)
-			fmt.Printf(" %s", cpu.RegisterX)
+			logE("%s", cpu.RegisterX)
 		case LDA_I:
 			cpu.loadIntoRegister(&cpu.Accumulator, mem)
-			fmt.Printf(" %s", cpu.Accumulator)
+			logE("%s", cpu.Accumulator)
 		case ADC_ZX:
 			// 4 cycles
 			// todo: finish
@@ -200,28 +204,45 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem *Memory, verbose bool) {
 			res := lhs + cpu.Accumulator
 			println(res)
 			fmt.Printf(" %s + %s = %s", cpu.Accumulator, cpu.RegisterX, res)
+			logE("%s", cpu.Accumulator)
 		case JMP_ABS:
 			fmt.Printf("cc: %d", cpu.Cycle)
 			cpu.ProgramCounter = cpu.FetchAddress(mem)
-			cpu.Cycle++
+			cpu.addCycle()
+			logE("%s", cpu.ProgramCounter)
+
 		case JMP_IND:
 			fmt.Printf("cc: %d", cpu.Cycle)
 			cpu.ProgramCounter = cpu.FetchAddress(mem)
 			cpu.ProgramCounter = cpu.FetchAddress(mem)
-			cpu.Cycle++
+			cpu.addCycle()
+			logE("%s", cpu.ProgramCounter.String())
 
 		default:
-			fmt.Println()
-			fmt.Fprintln(os.Stderr, cpu)
+			logE("\n===============\n")
+			logE("CPU CRASHED\n")
+			logE("%s\n", instruction)
+			//logS("%s\n", cpu)
 			os.Exit(1)
 		}
 
+		logE("\n")
+		logS("\n")
 		fmt.Println()
 	}
 }
+
 func (cpu SixFiveOTwo) AssertCycle(cycle uint) {
 	if cpu.Cycle != cycle {
 		fmt.Fprintf(os.Stderr, "CPU is in the wrong cycle %d expected %d", cpu.Cycle, cycle)
 		os.Exit(-1)
 	}
+}
+
+func logE(msg string, args ...any) {
+	LogE("\t"+msg, args...)
+}
+
+func logS(msg string, args ...any) {
+	LogS("\t"+msg, args...)
 }

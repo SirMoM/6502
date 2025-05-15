@@ -9,11 +9,14 @@ import (
 func main() {
 	println("6502")
 
+	cleanup := computer.SetupLogging()
+	defer cleanup()
+
 	cpu := computer.SixFiveOTwo{}
 	mem := computer.Memory{}
 	mem.Init()
-	_ = programs.MiniProg.CopyToMemory(cpu.ProgramCounter, &mem)
 	cpu.Reset(&mem)
+	_ = programs.MiniProg.CopyToMemory(cpu.ProgramCounter, &mem)
 
 	cpu.Execute(1, &mem, true)
 	cpu.AssertCycle(2)
