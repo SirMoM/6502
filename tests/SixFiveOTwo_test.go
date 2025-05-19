@@ -8,7 +8,6 @@ import (
 
 var gt *testing.T
 var ps *c.ProcessorStatus
-var cleanupLoggerFiles func()
 
 func assertEquals(expected uint8, actual c.Word, message string, args ...any) {
 	if expected != uint8(actual) {
@@ -116,8 +115,6 @@ func TestStatusRegister(t *testing.T) {
 	ps = &tmp
 	ps.Reset()
 	gt.Log(ps)
-	cleanupLoggerFiles = c.SetupLogging()
-	defer cleanupLoggerFiles()
 
 	t.Run("Test Zero Flag behavior", ZeroFlag)
 	t.Run("Test Carry Flag behavior", CarryFlag)
@@ -131,12 +128,14 @@ func TestStatusRegister(t *testing.T) {
 }
 
 func TestMiniProgramm(t *testing.T) {
-	cleanupLoggerFiles = c.SetupLogging()
-	defer cleanupLoggerFiles()
 	gt = t
-	cpu := c.SixFiveOTwo{}
-	mem := c.Memory{}
-	mem.Init()
+	logger := c.SetupLogging()
+
+	cpu := c.NewSixFiveOTwo(&logger)
+
+	mem := c.Memory16K{}
+	_ = mem.Init()
+
 	cpu.Reset(&mem)
 
 	_ = programs.MiniProg.CopyToMemory(cpu.ProgramCounter, &mem)
@@ -145,7 +144,8 @@ func TestMiniProgramm(t *testing.T) {
 	cpu.AssertCycle(2)
 	cpu.Execute(1, &mem, true)
 	cpu.AssertCycle(4)
-	//cpu.Execute(1, &mem, true)
-	//cpu.AssertCycle(8)
+
 	t.Log(cpu)
+
+	_ = logger.Close()
 }

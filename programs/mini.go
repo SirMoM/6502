@@ -1,29 +1,34 @@
 package programs
 
-import "noah-ruben.com/6502/computer"
+import c "noah-ruben.com/6502/computer"
 
 var MiniProg MiniProgram
 
 func init() {
-	MiniProg = MiniProgram{data: []computer.Word{
-		computer.Word(computer.LDA_I),
+	MiniProg = MiniProgram{data: []c.Word{
+		c.Word(c.LDA_I),
 		0xF9,
-		computer.Word(computer.ADC_ZX),
+		c.Word(c.ADC_ZX),
 		0x0F,
 	}}
 }
 
 type MiniProgram struct {
-	data []computer.Word
+	data []c.Word
 }
 
-func (m MiniProgram) CopyToMemory(addr computer.Address, mem *computer.Memory) error {
-	mem.Data[0xFFFD] = 0x00
-	mem.Data[0xFFFC] = 0x02
+// CopyToMemory copies the program to memory:
+// 1. Loads program start address into the start vector of the 6502
+// 2. Loads program data into memory
+func (m MiniProgram) CopyToMemory(addr c.Address, mem c.Memory) error {
 
+	// Load program start address into the start vector of the 6502
+	mem.WriteAddress(c.Address(0xFFFC), addr)
+
+	// Load program data into memory
 	for idx, word := range m.data {
-		addrWithOffset := addr + computer.Address(idx)
-		mem.Data[addrWithOffset] = word
+		addrWithOffset := addr + c.Address(idx)
+		mem.WriteWord(addrWithOffset, word)
 	}
 
 	return nil

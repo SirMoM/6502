@@ -53,45 +53,54 @@ type SixFiveOTwo struct {
 	RegisterX, RegisterY Word
 
 	Status ProcessorStatus
+
+	logger CpuLogger
+}
+
+func NewSixFiveOTwo(logger CpuLogger) *SixFiveOTwo {
+	return &SixFiveOTwo{
+		logger: logger,
+	}
 }
 
 // String returns a string representation of the CPU state
 func (cpu SixFiveOTwo) String() string {
 	sb := strings.Builder{}
-	fmt.Fprintln(&sb, "────────────────")
-	fmt.Fprintf(&sb, " C   : %04d\n", cpu.Cycle)
-	fmt.Fprintf(&sb, "PC   : %s\n", cpu.ProgramCounter)
-	fmt.Fprintf(&sb, "SP   : %s\n", cpu.StackPointer)
-	fmt.Fprintf(&sb, "ACC  : %s\n", cpu.Accumulator)
-	fmt.Fprintln(&sb, "────────────────")
-	fmt.Fprintf(&sb, "REG X: %s\n", cpu.RegisterX)
-	fmt.Fprintf(&sb, "REG Y: %s\n", cpu.RegisterY)
-	fmt.Fprintln(&sb, "────────────────")
-	fmt.Fprintf(&sb, "%v\n", cpu.Status)
+	_, _ = fmt.Fprintln(&sb, "────────────────")
+	_, _ = fmt.Fprintf(&sb, " C   : %04d\n", cpu.Cycle)
+	_, _ = fmt.Fprintf(&sb, "PC   : %s\n", cpu.ProgramCounter)
+	_, _ = fmt.Fprintf(&sb, "SP   : %s\n", cpu.StackPointer)
+	_, _ = fmt.Fprintf(&sb, "ACC  : %s\n", cpu.Accumulator)
+	_, _ = fmt.Fprintln(&sb, "────────────────")
+	_, _ = fmt.Fprintf(&sb, "REG X: %s\n", cpu.RegisterX)
+	_, _ = fmt.Fprintf(&sb, "REG Y: %s\n", cpu.RegisterY)
+	_, _ = fmt.Fprintln(&sb, "────────────────")
+	_, _ = fmt.Fprintf(&sb, "%v\n", cpu.Status)
 	return sb.String()
 }
 
 // Short returns a compact string representation of the CPU state
 func (cpu *SixFiveOTwo) Short() string {
 	sb := strings.Builder{}
-	fmt.Fprintln(&sb, "────────────────")
-	fmt.Fprintf(&sb, " C   : %04d\n", cpu.Cycle)
-	fmt.Fprintf(&sb, "PC   : %s\n", cpu.ProgramCounter)
-	fmt.Fprintf(&sb, "SP   : %s\n", cpu.StackPointer)
-	fmt.Fprintf(&sb, "ACC  : %s\n", cpu.Accumulator)
-	fmt.Fprintln(&sb, "────────────────")
-	fmt.Fprintf(&sb, "REG X: %s\n", cpu.RegisterX)
-	fmt.Fprintf(&sb, "REG Y: %s\n", cpu.RegisterY)
-	fmt.Fprintln(&sb, "────────────────")
-	fmt.Fprintf(&sb, "Satus: %s\n", cpu.Status.Status)
-	fmt.Fprintln(&sb, "────────────────")
+
+	_, _ = fmt.Fprintln(&sb, "────────────────")
+	_, _ = fmt.Fprintf(&sb, " C   : %04d\n", cpu.Cycle)
+	_, _ = fmt.Fprintf(&sb, "PC   : %s\n", cpu.ProgramCounter)
+	_, _ = fmt.Fprintf(&sb, "SP   : %s\n", cpu.StackPointer)
+	_, _ = fmt.Fprintf(&sb, "ACC  : %s\n", cpu.Accumulator)
+	_, _ = fmt.Fprintln(&sb, "────────────────")
+	_, _ = fmt.Fprintf(&sb, "REG X: %s\n", cpu.RegisterX)
+	_, _ = fmt.Fprintf(&sb, "REG Y: %s\n", cpu.RegisterY)
+	_, _ = fmt.Fprintln(&sb, "────────────────")
+	_, _ = fmt.Fprintf(&sb, "Satus: %s\n", cpu.Status.Status)
+	_, _ = fmt.Fprintln(&sb, "────────────────")
 
 	return sb.String()
 }
 
 // Reset initializes the CPU to its initial state
-func (cpu *SixFiveOTwo) Reset(mem *Memory) {
-	mem.Init()
+func (cpu *SixFiveOTwo) Reset(mem Memory) {
+	_ = mem.Init()
 	cpu.ProgramCounter = 0xFFFC
 	cpu.StackPointer = 0xFF
 	cpu.Accumulator = 0
@@ -104,11 +113,11 @@ func (cpu *SixFiveOTwo) Reset(mem *Memory) {
 
 func (cpu *SixFiveOTwo) addCycle() {
 	cpu.Cycle = cpu.Cycle + 1
-	LogE("\n[%d]\n", cpu.Cycle)
+	cpu.logger.SetCycle(cpu.Cycle)
 }
 
 // FetchInstruction fetches the next instruction from memory
-func (cpu *SixFiveOTwo) FetchInstruction(mem *Memory) Instruction {
+func (cpu *SixFiveOTwo) FetchInstruction(mem Memory) Instruction {
 	return Instruction(cpu.FetchWordFromProgramCounter(mem))
 }
 
@@ -121,22 +130,25 @@ func (cpu *SixFiveOTwo) FetchInstruction(mem *Memory) Instruction {
 	$0201       |     $12        | MSB Most Significant Byte (High Byte) of the address
 	---------------+----------------+------------------------------------
 */
-func (cpu *SixFiveOTwo) FetchAddress(mem *Memory) Address {
-	lsb := cpu.FetchWordFromProgramCounter(mem)
-	msb := cpu.FetchWordFromProgramCounter(mem)
-	return Address(uint16(msb)<<8 | uint16(lsb))
+func (cpu *SixFiveOTwo) FetchAddress(mem Memory) Address {
+	addr := mem.ReadAddress(cpu.ProgramCounter)
+	cpu.addCycle()
+	cpu.ProgramCounter++
+	cpu.addCycle()
+	cpu.ProgramCounter++
+	return addr
 }
 
 // FetchWord fetches a Word from Memory at the specified address
-func (cpu *SixFiveOTwo) FetchWord(mem *Memory, adress Address) Word {
-	data := mem.Data[adress]
+func (cpu *SixFiveOTwo) FetchWord(mem Memory, address Address) Word {
+	data := mem.ReadWord(address)
 	cpu.addCycle()
 	return data
 }
 
 // FetchWordFromProgramCounter fetches a Word from Memory at the ProgramCounter and increments it
-func (cpu *SixFiveOTwo) FetchWordFromProgramCounter(mem *Memory) Word {
-	data := mem.Data[cpu.ProgramCounter]
+func (cpu *SixFiveOTwo) FetchWordFromProgramCounter(mem Memory) Word {
+	data := mem.ReadWord(cpu.ProgramCounter)
 	cpu.ProgramCounter++
 	cpu.addCycle()
 	return data
@@ -178,25 +190,25 @@ func (cpu *SixFiveOTwo) evaluateAndSetStatusFlags(data Word) {
 //   - Increments the Program Counter (PC) via the call to FetchWord.
 //   - Modifies cpu.Status (specifically the Z and N flags) via the call
 //     to evaluateAndSetStatusFlags.
-func (cpu *SixFiveOTwo) loadIntoRegister(reg *Word, mem *Memory) {
+func (cpu *SixFiveOTwo) loadIntoRegister(reg *Word, mem Memory) {
 	data := cpu.FetchWordFromProgramCounter(mem)
 	*reg = data
 	cpu.evaluateAndSetStatusFlags(data)
 }
 
 // Execute runs the CPU for the specified number of cycles
-func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem *Memory, verbose bool) {
+func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem Memory, verbose bool) {
 	executionEnd := cpu.Cycle + cyclesToRun
 	for cyclesToRun == 0 || cpu.Cycle <= executionEnd {
 		instruction := cpu.FetchInstruction(mem)
-		logE("%s", instruction.String())
+		cpu.logger.LogE("%s\n", instruction)
 		switch instruction {
 		case LDX_I:
 			cpu.loadIntoRegister(&cpu.RegisterX, mem)
-			logE("%s", cpu.RegisterX)
+			cpu.logger.LogE("%s\n", cpu.RegisterX)
 		case LDA_I:
 			cpu.loadIntoRegister(&cpu.Accumulator, mem)
-			logE("%s", cpu.Accumulator)
+			cpu.logger.LogE("%s\n", cpu.Accumulator)
 		case ADC_ZX:
 			// 4 cycles
 			// todo: finish
@@ -204,45 +216,32 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem *Memory, verbose bool) {
 			res := lhs + cpu.Accumulator
 			println(res)
 			fmt.Printf(" %s + %s = %s", cpu.Accumulator, cpu.RegisterX, res)
-			logE("%s", cpu.Accumulator)
+			cpu.logger.LogE("%s", cpu.Accumulator)
 		case JMP_ABS:
 			fmt.Printf("cc: %d", cpu.Cycle)
 			cpu.ProgramCounter = cpu.FetchAddress(mem)
 			cpu.addCycle()
-			logE("%s", cpu.ProgramCounter)
+			cpu.logger.LogE("%s", cpu.ProgramCounter)
 
 		case JMP_IND:
 			fmt.Printf("cc: %d", cpu.Cycle)
 			cpu.ProgramCounter = cpu.FetchAddress(mem)
 			cpu.ProgramCounter = cpu.FetchAddress(mem)
 			cpu.addCycle()
-			logE("%s", cpu.ProgramCounter.String())
+			cpu.logger.LogE("%s", cpu.ProgramCounter.String())
 
 		default:
-			logE("\n===============\n")
-			logE("CPU CRASHED\n")
-			logE("%s\n", instruction)
-			//logS("%s\n", cpu)
+			cpu.logger.LogE("\n===============\n")
+			cpu.logger.LogE("CPU CRASHED\n")
+			cpu.logger.LogE("%s\n", instruction)
 			os.Exit(1)
 		}
-
-		logE("\n")
-		logS("\n")
-		fmt.Println()
 	}
 }
 
 func (cpu SixFiveOTwo) AssertCycle(cycle uint) {
 	if cpu.Cycle != cycle {
-		fmt.Fprintf(os.Stderr, "CPU is in the wrong cycle %d expected %d", cpu.Cycle, cycle)
+		_, _ = fmt.Fprintf(os.Stderr, "CPU is in the wrong cycle %d expected %d", cpu.Cycle, cycle)
 		os.Exit(-1)
 	}
-}
-
-func logE(msg string, args ...any) {
-	LogE("\t"+msg, args...)
-}
-
-func logS(msg string, args ...any) {
-	LogS("\t"+msg, args...)
 }
