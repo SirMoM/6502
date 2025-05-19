@@ -196,6 +196,26 @@ func (cpu *SixFiveOTwo) loadIntoRegister(reg *Word, mem Memory) {
 	cpu.evaluateAndSetStatusFlags(data)
 }
 
+// loadIntoRegisterImmediate directly loads a given byte into the specified register
+// without fetching from memory.
+//
+// It updates the Zero (Z) and Negative (N) status flags based on the value
+// loaded, by calling evaluateAndSetStatusFlags.
+//
+// Parameters:
+//
+//	reg: A pointer to the target CPU register (e.g., &cpu.Accumulator, &cpu.RegisterX, &cpu.RegisterY).
+//	data: The immediate byte value to load into the register.
+//
+// Side Effects:
+//   - Modifies the value of the register pointed to by `reg`.
+//   - Modifies cpu.Status (specifically the Z and N flags) via the call
+//     to evaluateAndSetStatusFlags.
+func (cpu *SixFiveOTwo) loadIntoRegisterImmediate(reg *Word, data Word) {
+	*reg = data
+	cpu.evaluateAndSetStatusFlags(data)
+}
+
 // Execute runs the CPU for the specified number of cycles
 func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem Memory, verbose bool) {
 	executionEnd := cpu.Cycle + cyclesToRun
@@ -210,13 +230,26 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem Memory, verbose bool) {
 			cpu.loadIntoRegister(&cpu.Accumulator, mem)
 			cpu.logger.LogE("%s\n", cpu.Accumulator)
 		case ADC_ZX:
-			// 4 cycles
-			// todo: finish
-			lhs := cpu.FetchWord(mem, Address(cpu.RegisterX))
+			addrOfValue := cpu.RegisterX + cpu.FetchWordFromProgramCounter(mem)
+			if addrOfValue < cpu.RegisterX {
+				cpu.logger.LogE("Page crossed\n")
+				cpu.addCycle()
+			}
+			cpu.logger.LogE("Calculated Addr: %v\n", addrOfValue)
+
+			lhs := cpu.FetchWord(mem, Address(addrOfValue))
+			cpu.logger.LogE("Loaded Value: %v\n", lhs)
+			cpu.addCycle()
+
 			res := lhs + cpu.Accumulator
-			println(res)
-			fmt.Printf(" %s + %s = %s", cpu.Accumulator, cpu.RegisterX, res)
-			cpu.logger.LogE("%s", cpu.Accumulator)
+			oldAcc := cpu.Accumulator
+			cpu.loadIntoRegisterImmediate(&cpu.Accumulator, res)
+			if cpu.Accumulator < oldAcc {
+				cpu.Status.SetCarryFlag(true)
+			}
+
+			cpu.logger.LogE("Result %s\n", cpu.Accumulator)
+			fmt.Printf("  A(%s) + RHS(%s) = A(%s)\n", oldAcc, lhs, res)
 		case JMP_ABS:
 			fmt.Printf("cc: %d", cpu.Cycle)
 			cpu.ProgramCounter = cpu.FetchAddress(mem)

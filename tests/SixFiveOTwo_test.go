@@ -144,7 +144,8 @@ func TestMiniProgramm(t *testing.T) {
 	cpu.AssertCycle(2)
 	cpu.Execute(1, &mem, true)
 	cpu.AssertCycle(4)
-
+	cpu.Execute(1, &mem, true)
+	cpu.AssertCycle(8)
 	t.Log(cpu)
 
 	_ = logger.Close()

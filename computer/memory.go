@@ -6,10 +6,18 @@ import (
 	"strings"
 )
 
+// Memory defines the interface for a memory system capable of basic read/write operations.
 type Memory interface {
+	// Init initializes the memory. Should be called before use.
 	Init() error
+
+	// WriteAddress stores the given address at the destination location in memory.
 	WriteAddress(destination Address, address Address)
+
+	// WriteWord stores a single word value at the specified destination address.
 	WriteWord(destination Address, value Word)
+
+	// ReadWord retrieves a word from the specified source address.
 	ReadWord(source Address) Word
 
 	// ReadAddress fetches a Address from Memory and increments the ProgramCounter

@@ -31,8 +31,8 @@ func (l *MultiCpuLogger) Close() error {
 
 func (l *MultiCpuLogger) log(wr io.Writer, m string, args ...any) {
 	msg := "  " + m
-	if len(args) != 0 || args[0] != nil {
-		if _, err := fmt.Fprintf(wr, msg, args); err != nil {
+	if len(args) != 0 && args[0] != nil {
+		if _, err := fmt.Fprintf(wr, msg, args...); err != nil {
 			log.Fatal("Failed to write to log file:", err)
 		}
 	} else {
