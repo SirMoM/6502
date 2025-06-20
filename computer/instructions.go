@@ -8,7 +8,12 @@ type Instruction uint8
 //goland:noinspection ALL
 const (
 	// Load Accumulation
+	// LDA_I Load Immediate
 	LDA_I Instruction = 0xA9
+	// LDA_Z Load thru Zero Page
+	LDA_Z Instruction = 0xA5
+
+	// Load X-Register
 	LDX_I Instruction = 0xA2
 
 	// ADC - Add with Carry

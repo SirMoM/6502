@@ -196,6 +196,26 @@ func (cpu *SixFiveOTwo) loadIntoRegister(reg *Word, mem Memory) {
 	cpu.evaluateAndSetStatusFlags(data)
 }
 
+// loadIntoRegisterFromAdress fetches a byte from memory using FetchWord (which advances the
+// Program Counter) and stores it into the specified register.
+// It then updates the Zero (Z) and Negative (N) status flags based on the value
+// that was loaded, by calling evaluateAndSetStatusFlags.
+// Parameters:
+//
+//	reg: A pointer to the target CPU register (e.g., &cpu.Accumulator, &cpu.RegisterX, &cpu.RegisterY).
+//	mem: A pointer to the Memory interface/struct used for fetching the byte.
+//
+// Side Effects:
+//   - Modifies the value of the register pointed to by `reg`.
+//   - Increments the Program Counter (PC) via the call to FetchWord.
+//   - Modifies cpu.Status (specifically the Z and N flags) via the call
+//     to evaluateAndSetStatusFlags.
+func (cpu *SixFiveOTwo) loadIntoRegisterFromAdress(reg *Word, mem Memory, address Address) {
+	data := cpu.FetchWord(mem, address)
+	*reg = data
+	cpu.evaluateAndSetStatusFlags(data)
+}
+
 // loadIntoRegisterImmediate directly loads a given byte into the specified register
 // without fetching from memory.
 //
@@ -229,12 +249,20 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem Memory, verbose bool) {
 		case LDA_I:
 			cpu.loadIntoRegister(&cpu.Accumulator, mem)
 			cpu.logger.LogE("%s\n", cpu.Accumulator)
+		case LDA_Z:
+			zpAdress := cpu.FetchWordFromProgramCounter(mem)
+			cpu.logger.LogE("ZP: %s", zpAdress)
+
+			cpu.loadIntoRegisterFromAdress(&cpu.Accumulator, mem, Address(zpAdress))
+			cpu.logger.LogE("%s\n", cpu.Accumulator)
 		case ADC_ZX:
-			addrOfValue := cpu.RegisterX + cpu.FetchWordFromProgramCounter(mem)
+			nextWord := cpu.FetchWordFromProgramCounter(mem)
+			addrOfValue := cpu.RegisterX + nextWord
 			if addrOfValue < cpu.RegisterX {
 				cpu.logger.LogE("Page crossed\n")
 				cpu.addCycle()
 			}
+			cpu.logger.LogE("%v+%v\n", cpu.RegisterX, nextWord)
 			cpu.logger.LogE("Calculated Addr: %v\n", addrOfValue)
 
 			lhs := cpu.FetchWord(mem, Address(addrOfValue))

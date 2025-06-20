@@ -5,8 +5,10 @@ import c "noah-ruben.com/6502/computer"
 var MiniProg MiniProgram
 
 func init() {
+
+	// how to fill zero page?
 	MiniProg = MiniProgram{data: []c.Word{
-		c.Word(c.LDA_I),
+		c.Word(c.LDA_Z),
 		0xF9,
 		c.Word(c.LDX_I),
 		0x0F,
