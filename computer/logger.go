@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"os"
+	"path/filepath"
 )
 
 type CpuLogger interface {
@@ -66,10 +67,14 @@ func (l *MultiCpuLogger) SetCycle(cycle uint) {
 }
 
 func SetupLogging() MultiCpuLogger {
-	folder, ok := os.LookupEnv("LOG_FOLDER")
-	if !ok {
-		_, _ = fmt.Fprintln(os.Stderr, "LOG_FOLDER environment variable not set")
+	folder := os.Getenv("LOG_FOLDER")
+	if folder == "" {
+		folder = ".logs"
 	}
+	if err := os.MkdirAll(folder, 0o755); err != nil {
+		log.Fatal("Failed to create log directory:", err)
+	}
+	folder = filepath.Clean(folder) + string(os.PathSeparator)
 
 	execLog, err := os.OpenFile(folder+"exec.log" /*os.O_APPEND|*/, os.O_CREATE|os.O_WRONLY, 0666)
 	if err != nil {

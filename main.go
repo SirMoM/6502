@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+
 	"noah-ruben.com/6502/computer"
 	"noah-ruben.com/6502/programs"
 )
