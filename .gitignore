@@ -18,11 +18,16 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
-# Project-generated logs and coverage artifacts
-.logs/*
-!.logs/.gitkeep
-.coverage/*
-!.coverage/.gitkeep
+# Project-generated build artifacts
+/6502
+.logs/
+.coverage/
+build/bin/*
+!build/bin/.gitkeep
+build/.logs/*
+!build/.logs/.gitkeep
+build/.coverage/*
+!build/.coverage/.gitkeep
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
