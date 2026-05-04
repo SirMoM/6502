@@ -16,8 +16,19 @@ const (
 	// Load X-Register
 	LDX_I Instruction = 0xA2
 
+	// Store Accumulator
+	STA_Z Instruction = 0x85 // Zero Page
+
 	// ADC - Add with Carry
+	ADC_Z  Instruction = 0x65 // Zero Page
 	ADC_ZX Instruction = 0x75 // Zero Page,X
+
+	// Shift and status
+	ASL_A Instruction = 0x0A // Accumulator
+	CLC   Instruction = 0x18 // Clear Carry
+
+	// Return
+	RTS Instruction = 0x60
 
 	// JMP - Jump
 	JMP_ABS Instruction = 0x4C // Absolute

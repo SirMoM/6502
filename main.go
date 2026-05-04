@@ -18,7 +18,7 @@ func main() {
 	_ = mem.Init()
 
 	cpu.Reset(&mem)
-	_ = programs.MiniProg.CopyToMemory(cpu.ProgramCounter, &mem)
+	_ = programs.Mult10Prog.CopyToMemory(cpu.ProgramCounter, &mem)
 
 	cpu.Execute(1, &mem, true)
 	cpu.AssertCycle(2)

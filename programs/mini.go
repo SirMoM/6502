@@ -7,18 +7,18 @@ var MiniProg MiniProgram
 func init() {
 
 	// how to fill zero page?
-	MiniProg = MiniProgram{data: []c.Word{
-		c.Word(c.LDA_Z),
+	MiniProg = MiniProgram{data: []any{
+		c.LDA_Z,
 		0xF9,
-		c.Word(c.LDX_I),
+		c.LDX_I,
 		0x0F,
-		c.Word(c.ADC_ZX),
+		c.ADC_ZX,
 		0x01,
 	}}
 }
 
 type MiniProgram struct {
-	data []c.Word
+	data []any
 }
 
 // CopyToMemory copies the program to memory:
@@ -30,8 +30,9 @@ func (m MiniProgram) CopyToMemory(addr c.Address, mem c.Memory) error {
 	mem.WriteAddress(c.Address(0xFFFC), addr)
 
 	// Load the program data into memory
-	for idx, word := range m.data {
+	for idx, bytes := range m.data {
 		addrWithOffset := addr + c.Address(idx)
+		word := c.ToWord(bytes)
 		mem.WriteWord(addrWithOffset, word)
 	}
 

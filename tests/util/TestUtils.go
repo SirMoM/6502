@@ -1,8 +1,9 @@
 package util_test
 
 import (
-	c "noah-ruben.com/6502/computer"
 	"testing"
+
+	c "noah-ruben.com/6502/computer"
 )
 
 // TestHelper wraps *testing.T to provide assertion methods.
@@ -99,9 +100,9 @@ func (mem *TestMemory) ReadAddress(source c.Address) c.Address {
 	msb := mem.ReadWord(source + 1)
 	return c.Address(uint16(msb)<<8 | uint16(lsb))
 }
-func (mem *TestMemory) AppendInplace(data []c.Word) {
-	for _, word := range data {
-		mem.Data = append(mem.Data, word)
+func (mem *TestMemory) AppendInplace(data []any) {
+	for _, bytE := range data {
+		mem.Data = append(mem.Data, c.ToWord(bytE))
 	}
 }
 
@@ -117,7 +118,7 @@ type InstructionTestData struct {
 	// RegisterYSetup - Value that should be in the Y-Register before the computer executes the first Instruction
 	RegisterYSetup c.Word
 	// MemorySetup - Continous memory values. These will be appended to the TestMemory and will be "returned" FIFO as requests are made to the memory. This means memory jump operations are not exexuted. Just the next values are returned!
-	MemorySetup []c.Word
+	MemorySetup []any
 
 	// ExpectToAdvancedCycles - The number of cycles that the compputer should have advanced
 	ExpectToAdvancedCycles uint

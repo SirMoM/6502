@@ -14,32 +14,32 @@ func TestADC_ZX(t *testing.T) {
 	tm := ut.DefaultTestMemory(t)
 
 	data := []ut.InstructionTestData{
-		ut.InstructionTestData{
+		{
 			Name:                         "Normal Addition",
 			AccumolatorSetup:             0x10,
 			RegisterXSetup:               0,
 			RegisterYSetup:               0,
-			MemorySetup:                  []c.Word{c.Word(c.ADC_ZX), 0x00, 0x0F},
+			MemorySetup:                  []any{c.Word(c.ADC_ZX), 0x00, 0x0F},
 			ExpectToAdvancedCycles:       4,
 			ExpectAccumulatorValue:       0x1F,
 			ExpectedProcessorStatusValue: 0b00000000,
 		},
-		ut.InstructionTestData{
+		{
 			Name:                         "Addition with Carry",
 			AccumolatorSetup:             0x10,
 			RegisterXSetup:               0,
 			RegisterYSetup:               0,
-			MemorySetup:                  []c.Word{c.Word(c.ADC_ZX), 0x00, 0xF1},
+			MemorySetup:                  []any{c.Word(c.ADC_ZX), 0x00, 0xF1},
 			ExpectToAdvancedCycles:       4,
 			ExpectAccumulatorValue:       0x01,
 			ExpectedProcessorStatusValue: 0b00000001,
 		},
-		ut.InstructionTestData{
+		{
 			Name:                   "Addition with Zero result",
 			AccumolatorSetup:       0x10,
 			RegisterXSetup:         0,
 			RegisterYSetup:         0,
-			MemorySetup:            []c.Word{c.Word(c.ADC_ZX), 0x00, 0xF0},
+			MemorySetup:            []any{c.Word(c.ADC_ZX), 0x00, 0xF0},
 			ExpectToAdvancedCycles: 4,
 			ExpectAccumulatorValue: 0x00,
 			// TODO check if carry is should be set?

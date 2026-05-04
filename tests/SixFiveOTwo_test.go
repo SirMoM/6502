@@ -1,10 +1,11 @@
 package tests_test
 
 import (
+	"testing"
+
 	c "noah-ruben.com/6502/computer"
 	"noah-ruben.com/6502/programs"
 	tu "noah-ruben.com/6502/tests/util"
-	"testing"
 )
 
 var ah tu.AssertHelper
@@ -123,7 +124,6 @@ func TestStatusRegister(t *testing.T) {
 }
 
 func TestMiniProgramm(t *testing.T) {
-	gt = t
 	logger := c.SetupLogging()
 
 	cpu := c.NewSixFiveOTwo(&logger)
