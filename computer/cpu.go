@@ -257,8 +257,7 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem Memory, verbose bool) {
 			cpu.logger.LogE("%s\n", cpu.Accumulator)
 		case ASL_A:
 			// This operation shifts all the bits of the accumulator or memory contents one bit left. Bit 0 is set to 0 and bit 7 is placed in the carry flag. The effect of this operation is to multiply the memory contents by 2 (ignoring 2's complement considerations), setting the carry if the result will not fit in 8 bits.
-
-			cpu.Status.SetCarryFlag(cpu.Accumulator<<1 == 1)
+			cpu.Status.SetCarryFlag((cpu.Accumulator & bit7) != 0)
 			cpu.Accumulator = cpu.Accumulator << 1
 			cpu.Cycle++
 			cpu.evaluateAndSetStatusFlags(cpu.Accumulator)

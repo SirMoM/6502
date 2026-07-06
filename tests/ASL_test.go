@@ -23,6 +23,16 @@ func TestASL(t *testing.T) {
 			ExpectAccumulatorValue:       10,
 			ExpectedProcessorStatusValue: 0b00000000,
 		},
+		{
+			Name:                         "ASL Accumulator Overflow",
+			AccumolatorSetup:             0xFF,
+			RegisterXSetup:               0,
+			RegisterYSetup:               0,
+			MemorySetup:                  []any{c.ASL_A},
+			ExpectToAdvancedCycles:       2,
+			ExpectAccumulatorValue:       0xFE,
+			ExpectedProcessorStatusValue: 0b10000001,
+		},
 	}
 
 	t.Logf("All tests for %s", c.ASL_A)
