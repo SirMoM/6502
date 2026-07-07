@@ -266,6 +266,28 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem Memory, verbose bool) {
 			cpu.Cycle++
 			cpu.evaluateAndSetStatusFlags(cpu.Accumulator)
 			cpu.logger.LogE("%s\n", cpu.Accumulator)
+		case ADC_Z:
+			nextWord := cpu.FetchWordFromProgramCounter(mem)
+
+			lhs := cpu.FetchWord(mem, Address(nextWord))
+
+			oldAcc := cpu.Accumulator
+			carryIn := cpu.Status.GetCarryFlag()
+
+			sum := uint16(oldAcc) + uint16(lhs) + uint16(carryIn)
+			result := Word(sum & 0xFF)
+
+			signAcc := (oldAcc & 0x80) != 0
+			signLhs := (lhs & 0x80) != 0
+			signResult := (result & 0x80) != 0
+
+			cpu.Status.SetCarryFlag(sum > 0xFF)
+			cpu.Status.SetOverflowFlag(signAcc == signLhs && signAcc != signResult)
+			cpu.loadIntoRegisterImmediate(&cpu.Accumulator, result)
+
+			cpu.logger.LogE("Result %s\n", cpu.Accumulator)
+			fmt.Printf("  A(%s) + RHS(%s) = A(%s)\n", oldAcc, lhs, result)
+
 		case ADC_ZX:
 			nextWord := cpu.FetchWordFromProgramCounter(mem)
 			addrOfValue := cpu.RegisterX + nextWord
@@ -278,17 +300,24 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem Memory, verbose bool) {
 
 			lhs := cpu.FetchWord(mem, Address(addrOfValue))
 			cpu.logger.LogE("Loaded Value: %v\n", lhs)
+
+			oldAcc := cpu.Accumulator
+			carryIn := cpu.Status.GetCarryFlag()
+
+			sum := uint16(oldAcc) + uint16(lhs) + uint16(carryIn)
+			result := Word(sum & 0xFF)
+
+			signAcc := (oldAcc & 0x80) != 0
+			signLhs := (lhs & 0x80) != 0
+			signResult := (result & 0x80) != 0
+
+			cpu.Status.SetCarryFlag(sum > 0xFF)
+			cpu.Status.SetOverflowFlag(signAcc == signLhs && signAcc != signResult)
+			cpu.loadIntoRegisterImmediate(&cpu.Accumulator, result)
 			cpu.addCycle()
 
-			res := lhs + cpu.Accumulator
-			oldAcc := cpu.Accumulator
-			cpu.loadIntoRegisterImmediate(&cpu.Accumulator, res)
-			if cpu.Accumulator < oldAcc {
-				cpu.Status.SetCarryFlag(true)
-			}
-
 			cpu.logger.LogE("Result %s\n", cpu.Accumulator)
-			fmt.Printf("  A(%s) + RHS(%s) = A(%s)\n", oldAcc, lhs, res)
+			fmt.Printf("  A(%s) + RHS(%s) = A(%s)\n", oldAcc, lhs, result)
 		case JMP_ABS:
 			fmt.Printf("cc: %d", cpu.Cycle)
 			cpu.ProgramCounter = cpu.FetchAddress(mem)
