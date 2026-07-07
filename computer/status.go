@@ -155,3 +155,14 @@ func (ps ProcessorStatus) String() string {
 
 	return sb.String()
 }
+
+const (
+	CarryFlag     uint8 = 1 << 0 // C
+	ZeroFlag      uint8 = 1 << 1 // Z
+	InterruptFlag uint8 = 1 << 2 // I
+	DecimalFlag   uint8 = 1 << 3 // D
+	BreakFlag     uint8 = 1 << 4 // B
+	UnusedFlag    uint8 = 1 << 5 // usually always set when pushed/read
+	OverflowFlag  uint8 = 1 << 6 // V
+	NegativeFlag  uint8 = 1 << 7 // N
+)

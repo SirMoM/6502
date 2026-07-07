@@ -88,7 +88,10 @@ func (mem *TestMemory) WriteAddress(destination c.Address, address c.Address) {
 	mem.t.Log("[WARN] DONT USE `WriteAddress(<args>)` it does nothing!")
 }
 func (mem *TestMemory) WriteWord(destination c.Address, value c.Word) {
-	mem.t.Log("[WARN] DONT USE `WordWrite(<args>)` it does nothing!")
+	if cap(mem.Data) < int(destination) {
+		mem.t.Log("[WARN] DONT USE `WriteAddress(<args>)` it does nothing!")
+	}
+	mem.Data[destination] = value
 }
 func (mem *TestMemory) ReadWord(source c.Address) c.Word {
 	res := mem.Data[mem.idx]
@@ -120,12 +123,17 @@ type InstructionTestData struct {
 	// MemorySetup - Continous memory values. These will be appended to the TestMemory and will be "returned" FIFO as requests are made to the memory. This means memory jump operations are not exexuted. Just the next values are returned!
 	MemorySetup []any
 
+	// ProcessorStatusValueSetup - The Value of the ProcessorStatus to have before the computer executes the first Instruction
+	ProcessorStatusValueSetup c.ProcessorStatus
+
 	// ExpectToAdvancedCycles - The number of cycles that the compputer should have advanced
 	ExpectToAdvancedCycles uint
 	// ExpectAccumulatorValue - Values of the Accumulator after the computer execuest the Instruction
 	ExpectAccumulatorValue uint8
 	// ExpectedProcessorStatusValue - The Value of the [../../computer/status.go|ProcessorStatus] to have
 	ExpectedProcessorStatusValue uint8
+	// ExpectMemory - Continous memory values.
+	ExpectMemory []any
 }
 
 func (i InstructionTestData) Run(tee *testing.T, cpu *c.SixFiveOTwo, tm *TestMemory) {
@@ -137,6 +145,7 @@ func (i InstructionTestData) Run(tee *testing.T, cpu *c.SixFiveOTwo, tm *TestMem
 		cpu.Accumulator = i.AccumolatorSetup
 		cpu.RegisterX = i.RegisterXSetup
 		cpu.RegisterY = i.RegisterYSetup
+		cpu.Status = i.ProcessorStatusValueSetup
 
 		tm.AppendInplace(i.MemorySetup)
 

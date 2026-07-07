@@ -243,6 +243,10 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem Memory, verbose bool) {
 		instruction := cpu.FetchInstruction(mem)
 		cpu.logger.LogE("%s\n", instruction)
 		switch instruction {
+		case CLC:
+			cpu.Status.SetCarryFlag(false)
+			cpu.addCycle()
+			cpu.logger.LogE("%s", cpu.ProgramCounter.String())
 		case LDX_I:
 			cpu.loadIntoRegister(&cpu.RegisterX, mem)
 			cpu.logger.LogE("%s\n", cpu.RegisterX)
@@ -297,7 +301,11 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem Memory, verbose bool) {
 			cpu.ProgramCounter = cpu.FetchAddress(mem)
 			cpu.addCycle()
 			cpu.logger.LogE("%s", cpu.ProgramCounter.String())
-
+		case STA_Z:
+			nextWord := cpu.FetchWordFromProgramCounter(mem)
+			mem.WriteWord(Address(nextWord), cpu.Accumulator)
+			cpu.addCycle()
+			cpu.logger.LogE("%s", cpu.ProgramCounter.String())
 		default:
 			cpu.logger.LogE("\n===============\n")
 			cpu.logger.LogE("CPU CRASHED\n")

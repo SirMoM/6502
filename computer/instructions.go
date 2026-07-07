@@ -17,7 +17,13 @@ const (
 	LDX_I Instruction = 0xA2
 
 	// Store Accumulator
-	STA_Z Instruction = 0x85 // Zero Page
+	STA_Z  Instruction = 0x85 // Zero Page
+	STA_ZX Instruction = 0x95 // Zero Page X
+	STA_A  Instruction = 0x8D // Absolute
+	STA_AX Instruction = 0x9D // Absolute X
+	STA_AY Instruction = 0x99 // Absolute Y
+	STA_IX Instruction = 0x9D // Indirect X
+	STA_IY Instruction = 0x99 // Indirect Y
 
 	// ADC - Add with Carry
 	ADC_Z  Instruction = 0x65 // Zero Page
