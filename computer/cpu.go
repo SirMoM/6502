@@ -335,6 +335,19 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem Memory, verbose bool) {
 			mem.WriteWord(Address(nextWord), cpu.Accumulator)
 			cpu.addCycle()
 			cpu.logger.LogE("%s", cpu.ProgramCounter.String())
+		case STA_ZX:
+			nextWord := cpu.FetchWordFromProgramCounter(mem)
+			// RegisterX is Word aka uint8
+			// nextWord is also Word
+			// Adding is a cycle
+			addrOfValue := cpu.RegisterX + nextWord
+			cpu.addCycle()
+			cpu.logger.LogE("%v+%v\n", cpu.RegisterX, nextWord)
+			cpu.logger.LogE("Calculated Addr: %v\n", addrOfValue)
+
+			mem.WriteWord(Address(addrOfValue), cpu.Accumulator)
+			cpu.addCycle()
+			cpu.logger.LogE("%s", cpu.ProgramCounter.String())
 		default:
 			cpu.logger.LogE("\n===============\n")
 			cpu.logger.LogE("CPU CRASHED\n")

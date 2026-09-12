@@ -26,7 +26,7 @@ func TestSTA(t *testing.T) {
 			Name:                         "STA Zero Page,X",
 			AccumolatorSetup:             0x42,
 			RegisterXSetup:               0x05,
-			MemorySetup:                  []any{c.STA_ZX, 0x10}, // Store at $0010 + 5 = $0015
+			MemorySetup:                  []any{c.STA_ZX, 0x10, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // Store at $0010 + 5 = $0015
 			ExpectToAdvancedCycles:       4,
 			ExpectAccumulatorValue:       0x42,
 			ExpectMemory:                 []any{0x0015: 0x42},
@@ -85,6 +85,7 @@ func TestSTA(t *testing.T) {
 
 	t.Logf("All tests for STA")
 	for idx, testData := range data {
+		tm = ut.DefaultTestMemory(t)
 		testData.Name = strconv.Itoa(idx+1) + "_" + testData.Name
 		testData.Run(t, cpu, tm)
 	}

@@ -1,6 +1,7 @@
 package util_test
 
 import (
+	"fmt"
 	"testing"
 
 	c "noah-ruben.com/6502/computer"
@@ -77,7 +78,6 @@ func NewTestMemory(tee *testing.T, size uint) *TestMemory {
 		t:    tee,
 		idx:  0,
 	}
-
 }
 
 func (mem TestMemory) Init() error {
@@ -91,6 +91,8 @@ func (mem *TestMemory) WriteWord(destination c.Address, value c.Word) {
 	if cap(mem.Data) < int(destination) {
 		mem.t.Log("[WARN] DONT USE `WriteAddress(<args>)` it does nothing!")
 	}
+	fmt.Println(destination)
+	fmt.Println(len(mem.Data))
 	mem.Data[destination] = value
 }
 func (mem *TestMemory) ReadWord(source c.Address) c.Word {
@@ -148,6 +150,8 @@ func (i InstructionTestData) Run(tee *testing.T, cpu *c.SixFiveOTwo, tm *TestMem
 		cpu.Status = i.ProcessorStatusValueSetup
 
 		tm.AppendInplace(i.MemorySetup)
+
+		fmt.Printf("%+v", tm)
 
 		// Test
 		cpu.Execute(1, tm, true)
