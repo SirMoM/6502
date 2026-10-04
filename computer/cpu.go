@@ -348,6 +348,12 @@ func (cpu *SixFiveOTwo) Execute(cyclesToRun uint, mem Memory, verbose bool) {
 			mem.WriteWord(Address(addrOfValue), cpu.Accumulator)
 			cpu.addCycle()
 			cpu.logger.LogE("%s", cpu.ProgramCounter.String())
+		case STA_A:
+			absoluteAdress := cpu.FetchAddress(mem)
+			cpu.logger.LogE("%v", absoluteAdress)
+			mem.WriteWord(absoluteAdress, cpu.Accumulator)
+			cpu.addCycle()
+			cpu.logger.LogE("%s", cpu.ProgramCounter.String())
 		default:
 			cpu.logger.LogE("\n===============\n")
 			cpu.logger.LogE("CPU CRASHED\n")

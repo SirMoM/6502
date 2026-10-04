@@ -89,10 +89,15 @@ func (mem *TestMemory) WriteAddress(destination c.Address, address c.Address) {
 }
 func (mem *TestMemory) WriteWord(destination c.Address, value c.Word) {
 	if cap(mem.Data) < int(destination) {
-		mem.t.Log("[WARN] DONT USE `WriteAddress(<args>)` it does nothing!")
+		mem.t.Log("[WARN] DONT USE `WriteWord(<args>)` it does nothing!")
+	}
+	if len(mem.Data) < int(destination) {
+		mem.t.Log("[WARN] destination is outside of lenght of mem.Data")
+		mem.Data = append(mem.Data, make([]c.Word, destination, destination)...)
 	}
 	fmt.Println(destination)
 	fmt.Println(len(mem.Data))
+
 	mem.Data[destination] = value
 }
 func (mem *TestMemory) ReadWord(source c.Address) c.Word {
